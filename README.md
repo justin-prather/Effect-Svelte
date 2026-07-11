@@ -1,0 +1,59 @@
+# effect-svelte
+
+A bun monorepo containing Svelte 5 ports of the React bindings for two Effect libraries:
+
+| Package | Port of | Core library (unchanged, from npm) |
+| --- | --- | --- |
+| [`packages/atom-svelte`](packages/atom-svelte) | [`@effect-atom/atom-react`](https://github.com/tim-smart/effect-atom) | `@effect-atom/atom` |
+| [`packages/form-svelte`](packages/form-svelte) | [`@lucas-barake/effect-form-react`](https://github.com/lucas-barake/effect-form) (v3) | `@lucas-barake/effect-form` |
+
+Both React packages are thin binding layers over framework-agnostic cores, so these ports keep the
+core packages as dependencies and re-implement only the binding layer with Svelte 5 runes.
+
+## Setup
+
+```sh
+bun install
+bun run build            # builds both packages with svelte-package (atom-svelte first)
+bun run check            # svelte-check both packages
+bun run test             # vitest (jsdom) smoke tests
+bun run build:examples   # builds + prerenders both example apps (exercises SSR)
+```
+
+## Examples
+
+Two SvelteKit apps in `examples/` show basic usage (run with `bun run --cwd examples/<name> dev`):
+
+- **`examples/atom-demo`** — `atom-svelte`: writable/derived atoms with `bind:current`, an effectful
+  atom rendered through its `Result` states with refresh, and a promise-mode function atom. The root
+  layout provides a per-request registry via `RegistryProvider`.
+- **`examples/form-demo`** — `form-svelte`: a profile form with `onBlur` validation, generated field
+  components with extra props (`<f.name label="…" />`), a struct array field
+  (`<f.links>` / `<f.links.Item>` / `<f.links.url>`), dirty tracking, reset, and the submit `Result`
+  rendered on screen.
+
+Both apps prerender (`prerender = true`), so `bun run build:examples` doubles as an SSR smoke test
+of the generated components.
+
+The `references/` directory (gitignored) holds shallow clones of `effect-form` (v3), `effect-atom`,
+`effect` (v3) and `svelte` (v5) used while porting. Agent guidance for working on this repo
+(porting conventions, verification workflow, restoring/using `references/`) lives in
+`.claude/skills/` and `CLAUDE.md`.
+
+## Design notes
+
+- **API fidelity**: hook names (`useAtom`, `useAtomValue`, `useAtomSet`, …) and the
+  `FormSvelte.make(builder, { fields, onSubmit, mode, … })` signature match the React bindings, as do
+  the Vue and Solid ports in effect-atom.
+- **Reactive boxes instead of re-renders**: hooks return objects with a reactive `current` property
+  (the `svelte/reactivity` convention) backed by `$state` + registry subscriptions in `$effect`,
+  instead of React's `useSyncExternalStore`. `useAtom(...)` additionally supports assignment
+  (`bind:current`).
+- **Thunk arguments**: every hook also accepts `() => atom` so the target atom can be derived from
+  reactive state (same idea as the Vue port's `() => atom` arguments).
+- **Context instead of Providers where idiomatic**: `RegistryProvider` and `HydrationBoundary` exist
+  as components; `ScopedAtom` uses `provide()`/`use()` functions instead of a Provider component.
+- **Runtime field components**: `FormSvelte.make` returns real Svelte components per field
+  (`<f.email />`, `<f.tags.Item index={i}>`), created by wrapping generic renderer components in
+  config-binding functions — Svelte 5 components compile to `(internals, props)` functions in both
+  client and SSR output, so the wrappers delegate transparently.

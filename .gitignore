@@ -1,0 +1,7 @@
+node_modules/
+dist/
+references/
+*.tsbuildinfo
+.DS_Store
+.svelte-kit/
+build/
