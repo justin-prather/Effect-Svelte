@@ -19,6 +19,8 @@ import { afterEach, expect, test, vi } from "vitest"
 import Advanced from "./Advanced.svelte"
 import AsyncResult from "./AsyncResult.svelte"
 import Counter from "./Counter.svelte"
+import DeferredOtherHooks from "./DeferredOtherHooks.svelte"
+import DeferredRead from "./DeferredRead.svelte"
 import Lifecycle from "./Lifecycle.svelte"
 import Provided from "./Provided.svelte"
 
@@ -65,6 +67,144 @@ test("useAtom reads and writes, useAtomValue maps", () => {
   expect(button.textContent).toBe("1")
   expect(doubled.textContent).toBe("2")
   expect(defaultRegistry.get(atom)).toBe(1)
+})
+
+test.each([false, true])("a deferred derived read is safe (mapped=%s)", async (mapped) => {
+  const atom = Atom.make(42)
+  const registry = Registry.make()
+  const app = setup(DeferredRead, { atom, registry, mapped })
+
+  try {
+    expect(app.instance.read()).toBe(mapped ? 84 : 42)
+    app.instance.show()
+    flushSync()
+    registry.set(atom, 43)
+    flushSync()
+    expect(app.target.querySelector("[data-testid=value]")!.textContent).toBe(mapped ? "86" : "43")
+  } finally {
+    await app.destroy()
+    registry.dispose()
+  }
+})
+
+test("deferred reads switch to cold atoms and stop observing the previous atom", async () => {
+  const first = Atom.make(1)
+  const second = Atom.make(2)
+  const registry = Registry.make()
+  const app = setup(DeferredRead, { atom: first, registry })
+
+  try {
+    expect(app.instance.read()).toBe(1)
+    app.instance.select(second)
+    flushSync()
+    expect(app.instance.read()).toBe(2)
+    app.instance.show()
+    flushSync()
+    registry.set(second, 12)
+    registry.set(first, 99)
+    flushSync()
+    expect(app.target.querySelector("[data-testid=value]")!.textContent).toBe("12")
+  } finally {
+    await app.destroy()
+    registry.dispose()
+  }
+})
+
+test("deferred async atoms deliver their result after the first read", async () => {
+  const result = Atom.make(Effect.succeed(42).pipe(Effect.delay("10 millis")))
+  const atom = Atom.map(result, (value) => (AR.isSuccess(value) ? value.value : -1))
+  const registry = Registry.make()
+  const app = setup(DeferredRead, { atom, registry })
+
+  try {
+    expect(app.instance.read()).toBe(-1)
+    app.instance.show()
+    flushSync()
+    await vi.waitFor(() => {
+      flushSync()
+      expect(app.target.querySelector("[data-testid=value]")!.textContent).toBe("42")
+    })
+  } finally {
+    await app.destroy()
+    registry.dispose()
+  }
+})
+
+test.each(["writable", "suspense"] as const)(
+  "deferred %s hooks use the safe read bridge",
+  async (hook) => {
+    const registry = Registry.make()
+
+    const app = setup(DeferredOtherHooks, {
+      registry,
+      count: Atom.make(42),
+      result: Atom.make(AR.success(42))
+    })
+
+    try {
+      if (hook === "writable") {
+        expect(app.instance.readWritable()).toBe(42)
+      } else {
+        const result = await app.instance.readSuspense()
+        expect(AR.isSuccess(result)).toBe(true)
+
+        if (AR.isSuccess(result)) expect(result.value).toBe(42)
+      }
+    } finally {
+      await app.destroy()
+      registry.dispose()
+    }
+  }
+)
+
+test("shared atom readers clean up independently and can remount", async () => {
+  const atom = Atom.make(1)
+  const registry = Registry.make()
+  const subscribe = registry.subscribe.bind(registry)
+  let subscriptions = 0
+  vi.spyOn(registry, "subscribe").mockImplementation((atom, listener, options) => {
+    const stop = subscribe(atom, listener, options)
+    subscriptions++
+
+    return () => {
+      subscriptions--
+      stop()
+    }
+  })
+  const first = setup(DeferredRead, { atom, registry })
+  const second = setup(DeferredRead, { atom, registry })
+
+  try {
+    first.instance.show()
+    second.instance.show()
+    flushSync()
+    expect(subscriptions).toBe(2)
+    await first.destroy()
+    await vi.waitFor(() => expect(subscriptions).toBe(1))
+    registry.set(atom, 2)
+    flushSync()
+    expect(second.target.querySelector("[data-testid=value]")!.textContent).toBe("2")
+    second.instance.hide()
+    flushSync()
+    await vi.waitFor(() => expect(subscriptions).toBe(0))
+    second.instance.show()
+    flushSync()
+    expect(subscriptions).toBe(1)
+    expect(second.target.querySelector("[data-testid=value]")!.textContent).toBe("2")
+    await second.destroy()
+    await vi.waitFor(() => expect(subscriptions).toBe(0))
+    registry.set(atom, 3)
+    const remounted = setup(DeferredRead, { atom, registry })
+    remounted.instance.show()
+    flushSync()
+    expect(remounted.target.querySelector("[data-testid=value]")!.textContent).toBe("3")
+    await remounted.destroy()
+    await vi.waitFor(() => expect(subscriptions).toBe(0))
+  } finally {
+    await first.destroy()
+    await second.destroy()
+    registry.dispose()
+  }
 })
 
 test("bind:current writes back to the atom", () => {
