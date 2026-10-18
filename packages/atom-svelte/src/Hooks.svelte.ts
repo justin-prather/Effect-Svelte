@@ -20,6 +20,7 @@ import * as Result from "effect/reactivity/AsyncResult"
 import * as Atom from "effect/reactivity/Atom"
 import type * as AtomRef from "effect/reactivity/AtomRef"
 import * as Registry from "effect/reactivity/AtomRegistry"
+import { createSubscriber } from "svelte/reactivity"
 
 import { useRegistry } from "./RegistryContext.js"
 
@@ -74,19 +75,28 @@ const makeAtomState = <A>(
   registry: Registry.AtomRegistry,
   atom: () => Atom.Atom<A>
 ): ReadonlyAtomState<A> => {
-  let version = $state(0)
-  $effect(() => {
-    return registry.subscribe(atom(), () => {
-      version += 1
-    })
-  })
+  const subscriptions = new WeakMap<Atom.Atom<A>, () => void>()
 
   return {
     get current() {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      version
+      // Resolve the target in the reader's tracking context so thunk changes
+      // invalidate the reader. Each target needs its own subscription lifetime.
+      const target = atom()
+      let subscribe = subscriptions.get(target)
 
-      return registry.get(atom())
+      if (subscribe === undefined) {
+        // A registry read can initialize/rebuild an atom and synchronously
+        // notify listeners. Svelte's external-store bridge safely invalidates
+        // readers even when that notification happens inside a derived read.
+        subscribe = createSubscriber((update) =>
+          registry.subscribe(target, update, { immediate: true })
+        )
+        subscriptions.set(target, subscribe)
+      }
+
+      subscribe()
+
+      return registry.get(target)
     }
   }
 }
