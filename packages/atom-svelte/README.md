@@ -1,7 +1,9 @@
 # atom-svelte
 
-Svelte 5 bindings for [`@effect-atom/atom`](https://github.com/tim-smart/effect-atom), mirroring the
-API of `@effect-atom/atom-react`.
+Svelte 5 bindings for [Effect v4 atoms](https://github.com/Effect-TS/effect/tree/main/packages/effect/src/reactivity).
+The API follows `@effect/atom-react`.
+
+Requires `effect@^4.0.5` and Svelte 5. The separate `@effect-atom/atom` dependency is no longer necessary.
 
 ## Usage
 
@@ -27,7 +29,7 @@ Svelte functions cannot return bare reactive primitives. Every hook also accepts
 
 ## API
 
-Mirrors `@effect-atom/atom-react`:
+Mirrors `@effect/atom-react`:
 
 - `useAtomValue(atom, f?)` → `{ readonly current }`
 - `useAtom(atom, options?)` → `{ current, set }` — assignment to `current` writes to the registry
@@ -35,13 +37,32 @@ Mirrors `@effect-atom/atom-react`:
 - `useAtomSet(atom, options?)`, `useAtomRefresh(atom)`, `useAtomMount(atom)`,
   `useAtomSubscribe(atom, f, options?)`, `useAtomInitialValues(values)`
 - `useAtomRef(ref)`, `useAtomRefProp(ref, prop)`, `useAtomRefPropValue(ref, prop)`
-- `useAtomSuspense(atom, options?)` → `{ readonly current: Promise<Result.Success> }`, designed for
+- `useAtomSuspense(atom, options?)` → `{ readonly current: Promise<AsyncResult.Success> }`, designed for
   `{#await}` blocks instead of React Suspense
 - `RegistryProvider` / `HydrationBoundary` components; `useRegistry()` / `provideRegistry(registry)`
   context helpers; `defaultRegistry`
 - `ScopedAtom.make(f)` → `{ provide(input?), use() }` (Svelte context instead of a Provider
   component)
-- Re-exports: `Atom`, `Registry`, `Result`, `AtomRef`, `AtomHttpApi`, `AtomRpc`, `Hydration`
+- Re-exports from `effect/reactivity`: `Atom`, `AtomRegistry`, `AsyncResult`, `AtomRef`, `AtomHttpApi`, `AtomRpc`, `Hydration`.
+- Compatibility aliases: `Registry` refers to `AtomRegistry`, and `Result` refers to `AsyncResult`.
+
+## Migration from Effect v3
+
+Replace direct `@effect-atom/atom/*` imports with `effect/reactivity/*` imports.
+The `Registry` module becomes `AtomRegistry`. The `Result` module becomes `AsyncResult`.
+The registry type is `AtomRegistry.AtomRegistry`, including through the `Registry` alias.
+The result type is `AsyncResult.AsyncResult<A, E>`, including through the `Result` alias.
+
+Custom `RegistryProvider` schedulers must return a cancellation function:
+
+```ts
+const scheduleTask = (f: () => void) => {
+  const id = setTimeout(f, 0)
+  return () => clearTimeout(id)
+}
+```
+
+The atom modules are unstable upstream. Minor Effect releases can change their APIs.
 
 ## Differences from atom-react
 
@@ -49,3 +70,4 @@ Mirrors `@effect-atom/atom-react`:
 - `useAtom` returns a single read/write box instead of a `[value, setter]` tuple.
 - React's `Suspense`-throwing `useAtomSuspense` becomes a stable-promise box for `{#await}`.
 - No scheduler dependency; the registry uses its default task scheduling.
+- `RegistryProvider` disposes registries it creates. An external registry remains the caller's responsibility.

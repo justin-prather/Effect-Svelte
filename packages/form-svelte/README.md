@@ -3,6 +3,20 @@
 Svelte 5 bindings for [`@lucas-barake/effect-form`](https://github.com/lucas-barake/effect-form),
 mirroring the API of `@lucas-barake/effect-form-react`.
 
+Requires Effect `^4.0.5`, effect-form `^1.1.1`, Svelte 5, and the matching `atom-svelte` workspace package.
+
+## Migration from Effect v3
+
+Schemas use the Effect v4 API. For example, use `Schema.String.check(Schema.isMinLength(3))` for a minimum length.
+Refinement errors use `{ path, issue }` instead of `{ path, message }`.
+Submission validation fails with `Schema.SchemaError`, not `ParseResult.ParseError`.
+Form schemas expose `Schema.Codec` types, with separate encoded and decoded values.
+
+`onSubmit` accepts a value, a `PromiseLike`, or an Effect.
+The optional `submitErrors` callback maps typed submission errors to `{ path, message }` entries.
+Declare `submitErrors` after `onSubmit` so TypeScript can infer the error type.
+The `fieldErrors` atom exposes a `ReadonlyMap` from field paths to messages.
+
 ## Usage
 
 Field components receive `{ field, props }`:
@@ -78,3 +92,5 @@ the `atom-svelte` hooks.
   reactive getters — read them where you use them.
 - `Initialize` initializes synchronously, so children render on the first pass (no
   `isInitialized` effect dance).
+- `Initialize` uses the upstream initialization atom to clear previous validation and submission state.
+  `KeepAlive` preserves form state across remounts.

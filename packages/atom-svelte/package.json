@@ -1,7 +1,7 @@
 {
   "name": "atom-svelte",
   "version": "0.1.0",
-  "description": "Svelte 5 bindings for @effect-atom/atom — a reactive toolkit for Effect",
+  "description": "Svelte 5 bindings for Effect v4 atoms",
   "type": "module",
   "license": "MIT",
   "sideEffects": [
@@ -28,15 +28,13 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@effect-atom/atom": "^0.5.0",
-    "effect": "^3.19.0",
+    "effect": "^4.0.5",
     "svelte": "^5.7.0"
   },
   "devDependencies": {
-    "@effect-atom/atom": "^0.5.3",
     "@sveltejs/package": "^2.5.8",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
-    "effect": "^3.21.4",
+    "effect": "^4.0.5",
     "jsdom": "^26.0.0",
     "svelte": "^5.56.4",
     "svelte-check": "^4.1.1",

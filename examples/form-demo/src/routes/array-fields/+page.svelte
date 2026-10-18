@@ -10,7 +10,7 @@
   const TodosField = Field.makeArrayField(
     "todos",
     Schema.Struct({
-      text: Schema.String.pipe(Schema.nonEmptyString({ message: () => "Todo text is required" })),
+      text: Schema.String.check(Schema.isNonEmpty({ message: "Todo text is required" })),
       completed: Schema.Boolean
     })
   )

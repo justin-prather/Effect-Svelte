@@ -5,7 +5,7 @@ import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
 const DisplayNameField = Field.makeField(
   "displayName",
-  Schema.String.pipe(Schema.nonEmptyString({ message: () => "Display name is required" }))
+  Schema.String.check(Schema.isNonEmpty({ message: "Display name is required" }))
 )
 
 const BioField = Field.makeField("bio", Schema.String)

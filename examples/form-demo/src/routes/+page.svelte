@@ -18,12 +18,12 @@
 
   const EmailField = Field.makeField(
     "email",
-    Schema.String.pipe(Schema.nonEmptyString({ message: () => "Email is required" }))
+    Schema.String.check(Schema.isNonEmpty({ message: "Email is required" }))
   )
 
   const PasswordField = Field.makeField(
     "password",
-    Schema.String.pipe(Schema.minLength(8, { message: () => "Password must be at least 8 characters" }))
+    Schema.String.check(Schema.isMinLength(8, { message: "Password must be at least 8 characters" }))
   )
 
   const loginFormBuilder = FormBuilder.empty.addField(EmailField).addField(PasswordField)
@@ -90,7 +90,7 @@
             `Account ${error.email} is locked. Try again at ${error.unlockAt.toLocaleTimeString()}.`
           )
       )
-      .onErrorTag("ParseError", () => alert("error", "Please fix the validation errors above."))
+      .onErrorTag("SchemaError", () => alert("error", "Please fix the validation errors above."))
       .onDefect((defect) => alert("error", `Unexpected error: ${String(defect)}`))
       .orNull()
   )

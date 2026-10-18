@@ -4,8 +4,8 @@ A bun monorepo containing Svelte 5 ports of the React bindings for two Effect li
 
 | Package | Port of | Core library (unchanged, from npm) |
 | --- | --- | --- |
-| [`packages/atom-svelte`](packages/atom-svelte) | [`@effect-atom/atom-react`](https://github.com/tim-smart/effect-atom) | `@effect-atom/atom` |
-| [`packages/form-svelte`](packages/form-svelte) | [`@lucas-barake/effect-form-react`](https://github.com/lucas-barake/effect-form) (v3) | `@lucas-barake/effect-form` |
+| [`packages/atom-svelte`](packages/atom-svelte) | [`@effect/atom-react`](https://github.com/Effect-TS/effect/tree/main/packages/atom/react) | `effect/reactivity` (Effect v4) |
+| [`packages/form-svelte`](packages/form-svelte) | [`@lucas-barake/effect-form-react`](https://github.com/lucas-barake/effect-form) | `@lucas-barake/effect-form` (v1) |
 
 Both React packages are thin binding layers over framework-agnostic cores, so these ports keep the
 core packages as dependencies and re-implement only the binding layer with Svelte 5 runes.
@@ -16,7 +16,7 @@ core packages as dependencies and re-implement only the binding layer with Svelt
 bun install
 bun run build            # builds both packages with svelte-package (atom-svelte first)
 bun run check            # svelte-check both packages
-bun run test             # vitest (jsdom) smoke tests
+bun run test             # vitest (jsdom) regression tests
 bun run build:examples   # builds + prerenders both example apps (exercises SSR)
 ```
 
@@ -35,9 +35,9 @@ Two SvelteKit apps in `examples/` show basic usage (run with `bun run --cwd exam
 Both apps prerender (`prerender = true`), so `bun run build:examples` doubles as an SSR smoke test
 of the generated components.
 
-The `references/` directory (gitignored) holds shallow clones of `effect-form` (v3), `effect-atom`,
-`effect` (v3) and `svelte` (v5) used while porting. Agent guidance for working on this repo
-(porting conventions, verification workflow, restoring/using `references/`) lives in
+The `references/` directory (gitignored) holds shallow clones of `effect-form` and `effect` (v4).
+The Effect clone includes the upstream React atom bindings.
+Agent guidance for this repo (porting conventions and verification workflow) lives in
 `.claude/skills/` and `CLAUDE.md`.
 
 ## Design notes

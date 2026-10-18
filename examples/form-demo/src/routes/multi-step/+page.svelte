@@ -7,7 +7,7 @@
   import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
   const required = (label: string) =>
-    Schema.String.pipe(Schema.nonEmptyString({ message: () => `${label} is required` }))
+    Schema.String.check(Schema.isNonEmpty({ message: `${label} is required` }))
 
   const step1Builder = FormBuilder.empty
     .addField(Field.makeField("firstName", required("First name")))

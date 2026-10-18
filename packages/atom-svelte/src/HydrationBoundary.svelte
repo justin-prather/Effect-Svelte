@@ -1,5 +1,5 @@
 <script lang="ts">
-  import * as Hydration from "@effect-atom/atom/Hydration"
+  import * as Hydration from "effect/reactivity/Hydration"
   import type { Snippet } from "svelte"
   import { useRegistry } from "./RegistryContext.js"
 

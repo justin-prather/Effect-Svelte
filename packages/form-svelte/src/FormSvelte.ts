@@ -21,15 +21,14 @@
  *
  * @since 1.0.0
  */
-import * as Atom from "@effect-atom/atom/Atom"
-import type * as Registry from "@effect-atom/atom/Registry"
+import * as Atom from "effect/reactivity/Atom"
+import type * as Registry from "effect/reactivity/AtomRegistry"
 import { Field, FormAtoms } from "@lucas-barake/effect-form"
 import type { FieldState as FieldStateModule, Mode } from "@lucas-barake/effect-form"
 import type * as FormBuilder from "@lucas-barake/effect-form/FormBuilder"
 import type * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import type * as Option from "effect/Option"
-import type * as ParseResult from "effect/ParseResult"
 import type * as Schema from "effect/Schema"
 import type { Component, Snippet } from "svelte"
 import ArrayFieldRenderer from "./internal/ArrayFieldRenderer.svelte"
@@ -57,20 +56,22 @@ export type ExtractExtraProps<C> = C extends Component<FieldComponentProps<any, 
   : Record<string, never>
 
 type StructFieldsFromSchema<S> = S extends Schema.Struct<infer Fields> ? Fields
-  : S extends { readonly from: infer From } ? StructFieldsFromSchema<From>
+  : S extends Schema.suspend<infer Inner> ? StructFieldsFromSchema<Inner>
+  : S extends Schema.brand<infer Inner, any> ? StructFieldsFromSchema<Inner>
+  : S extends { readonly to: infer To } ? StructFieldsFromSchema<To>
   : never
 
-export type ArrayItemComponentMap<S extends Schema.Schema.Any> = StructFieldsFromSchema<S> extends
+export type ArrayItemComponentMap<S extends Schema.Top> = StructFieldsFromSchema<S> extends
   Schema.Struct.Fields ? {
-    readonly [K in keyof StructFieldsFromSchema<S>]: StructFieldsFromSchema<S>[K] extends Schema.Schema.Any
-      ? Component<FieldComponentProps<Schema.Schema.Encoded<StructFieldsFromSchema<S>[K]>, any>>
+    readonly [K in keyof StructFieldsFromSchema<S>]: StructFieldsFromSchema<S>[K] extends Schema.Top
+      ? Component<FieldComponentProps<Schema.Codec.Encoded<StructFieldsFromSchema<S>[K]>, any>>
       : never
   }
-  : Component<FieldComponentProps<Schema.Schema.Encoded<S>, any>>
+  : Component<FieldComponentProps<Schema.Codec.Encoded<S>, any>>
 
 export type FieldComponentMap<TFields extends Field.FieldsRecord> = {
   readonly [K in keyof TFields]: TFields[K] extends Field.FieldDef<any, infer S>
-    ? Component<FieldComponentProps<Schema.Schema.Encoded<S>, any>>
+    ? Component<FieldComponentProps<Schema.Codec.Encoded<S>, any>>
     : TFields[K] extends Field.ArrayFieldDef<any, infer S> ? ArrayItemComponentMap<S>
     : never
 }
@@ -93,8 +94,9 @@ export type BuiltForm<
     readonly submitCount: Atom.Atom<number>
     readonly validationCount: Atom.Atom<number>
     readonly rootError: Atom.Atom<Option.Option<string>>
+    readonly fieldErrors: Atom.Atom<ReadonlyMap<Field.FieldPath<TFields>, string>>
 
-    readonly schema: Schema.Schema<Field.DecodedFromFields<TFields>, Field.EncodedFromFields<TFields>, R>
+    readonly schema: Schema.Codec<Field.DecodedFromFields<TFields>, Field.EncodedFromFields<TFields>, R>
     readonly fields: FieldRefs<TFields>
 
     readonly Initialize: Component<{
@@ -103,7 +105,7 @@ export type BuiltForm<
       readonly children?: Snippet
     }>
 
-    readonly submit: Atom.AtomResultFn<SubmitArgs, A, E | ParseResult.ParseError>
+    readonly submit: Atom.AtomResultFn<SubmitArgs, A, E | Schema.SchemaError>
     readonly validate: Atom.AtomResultFn<void, void, never>
     readonly reset: Atom.Writable<void, void>
     readonly revertToLastSubmit: Atom.Writable<void, void>
@@ -122,7 +124,7 @@ type FieldComponents<TFields extends Field.FieldsRecord, CM extends FieldCompone
     : never
 }
 
-type ExtractArrayItemExtraProps<CM, S extends Schema.Schema.Any> = StructFieldsFromSchema<S> extends
+type ExtractArrayItemExtraProps<CM, S extends Schema.Top> = StructFieldsFromSchema<S> extends
   Schema.Struct.Fields ? {
     readonly [K in keyof StructFieldsFromSchema<S>]: CM extends { readonly [P in K]: infer C } ? ExtractExtraProps<C>
       : never
@@ -130,9 +132,9 @@ type ExtractArrayItemExtraProps<CM, S extends Schema.Schema.Any> = StructFieldsF
   : CM extends Component<FieldComponentProps<any, infer P>> ? P
   : never
 
-type ArrayFieldComponent<S extends Schema.Schema.Any, ExtraPropsMap> =
+type ArrayFieldComponent<S extends Schema.Top, ExtraPropsMap> =
   & Component<{
-    readonly children: Snippet<[ArrayFieldOperations<Schema.Schema.Encoded<S>>]>
+    readonly children: Snippet<[ArrayFieldOperations<Schema.Codec.Encoded<S>>]>
   }>
   & {
     readonly Item: Component<{
@@ -169,8 +171,8 @@ const withConfig = (renderer: unknown, config: unknown): any => (internals: unkn
 
 const makeFieldComponent = (
   fieldKey: string,
-  schema: Schema.Schema.Any,
-  getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Schema.Any) => FormAtoms.FieldAtoms,
+  schema: Schema.Top,
+  getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Top) => FormAtoms.FieldAtoms,
   component: Component<FieldComponentProps<any, any>>,
   onBlurSubmitAtom: Atom.Writable<void, void>
 ): any =>
@@ -184,9 +186,9 @@ const makeFieldComponent = (
 
 const makeArrayFieldComponent = (
   fieldKey: string,
-  def: Field.ArrayFieldDef<string, Schema.Schema.Any>,
+  def: Field.ArrayFieldDef<string, Schema.Top>,
   stateAtom: ArrayFieldRendererConfig["stateAtom"],
-  getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Schema.Any) => FormAtoms.FieldAtoms,
+  getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Top) => FormAtoms.FieldAtoms,
   operations: FormAtoms.FormOperations<any>,
   componentMap: Record<string, Component<FieldComponentProps<any, any>>> | Component<FieldComponentProps<any, any>>,
   onBlurSubmitAtom: Atom.Writable<void, void>
@@ -227,7 +229,7 @@ export const make: {
     TFields extends Field.FieldsRecord,
     R extends Registry.AtomRegistry,
     A,
-    E,
+    E = never,
     SubmitArgs = void,
     CM extends FieldComponentMap<TFields> = FieldComponentMap<TFields>
   >(
@@ -244,7 +246,8 @@ export const make: {
           readonly encoded: Field.EncodedFromFields<TFields>
           readonly get: Atom.FnContext
         }
-      ) => A | Effect.Effect<A, E, R>
+      ) => A | PromiseLike<A> | Effect.Effect<A, E, R>
+      readonly submitErrors?: (error: E) => ReadonlyArray<FormAtoms.SubmitError<TFields>>
     }
   ): BuiltForm<TFields, R, A, E, SubmitArgs, CM>
 
@@ -252,7 +255,7 @@ export const make: {
     TFields extends Field.FieldsRecord,
     R,
     A,
-    E,
+    E = never,
     SubmitArgs = void,
     ER = never,
     CM extends FieldComponentMap<TFields> = FieldComponentMap<TFields>
@@ -270,11 +273,12 @@ export const make: {
           readonly encoded: Field.EncodedFromFields<TFields>
           readonly get: Atom.FnContext
         }
-      ) => A | Effect.Effect<A, E, R>
+      ) => A | PromiseLike<A> | Effect.Effect<A, E, R>
+      readonly submitErrors?: (error: E) => ReadonlyArray<FormAtoms.SubmitError<TFields>>
     }
   ): BuiltForm<TFields, R, A, E, SubmitArgs, CM>
 } = (self: any, options: any): any => {
-  const { fields: components, mode, onSubmit, reactivityKeys, runtime: providedRuntime } = options
+  const { fields: components, mode, onSubmit, reactivityKeys, runtime: providedRuntime, submitErrors } = options
   const runtime = providedRuntime ?? Atom.runtime(Layer.empty)
   const { fields } = self
 
@@ -282,6 +286,7 @@ export const make: {
     formBuilder: self,
     runtime,
     onSubmit,
+    submitErrors,
     reactivityKeys,
     mode
   })
@@ -289,11 +294,13 @@ export const make: {
   const {
     autoSubmitAtom,
     combinedSchema,
+    fieldErrorsAtom,
     fieldRefs,
     getFieldAtoms,
     getOrCreateFieldAtoms,
     hasChangedSinceSubmitAtom,
     isDirtyAtom,
+    initializeAtom,
     keepAliveActiveAtom,
     lastSubmittedValuesAtom,
     mountAtom,
@@ -313,10 +320,10 @@ export const make: {
 
   const Initialize = withConfig(InitializeRenderer, {
     stateAtom,
+    initializeAtom,
     validateAtom,
     keepAliveActiveAtom,
-    autoSubmitAtom,
-    operations
+    autoSubmitAtom
   })
 
   const KeepAlive = withConfig(KeepAliveRenderer, {
@@ -355,6 +362,7 @@ export const make: {
     submitCount: submitCountAtom,
     validationCount: validationCountAtom,
     rootError: rootErrorAtom,
+    fieldErrors: fieldErrorsAtom,
     schema: combinedSchema,
     fields: fieldRefs,
     Initialize,

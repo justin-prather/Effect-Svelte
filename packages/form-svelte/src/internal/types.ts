@@ -1,4 +1,4 @@
-import type * as Atom from "@effect-atom/atom/Atom"
+import type * as Atom from "effect/reactivity/Atom"
 import type { FieldState as FieldStateModule, FormAtoms } from "@lucas-barake/effect-form"
 import type * as FormBuilder from "@lucas-barake/effect-form/FormBuilder"
 import type * as Option from "effect/Option"
@@ -17,25 +17,25 @@ export type StateAtom = Atom.Writable<
 
 export interface FieldRendererConfig {
   readonly fieldKey: string
-  readonly schema: Schema.Schema.Any
-  readonly getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Schema.Any) => FormAtoms.FieldAtoms
+  readonly schema: Schema.Top
+  readonly getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Top) => FormAtoms.FieldAtoms
   readonly component: Component<FieldComponentProps<any, any>>
   readonly onBlurSubmitAtom: Atom.Writable<void, void>
 }
 
 export interface ArrayFieldRendererConfig {
   readonly fieldKey: string
-  readonly itemSchema: Schema.Schema.Any
+  readonly itemSchema: Schema.Top
   readonly stateAtom: StateAtom
   readonly operations: FormAtoms.FormOperations<any>
 }
 
 export interface InitializeRendererConfig {
+  readonly initializeAtom: Atom.Writable<void, any>
   readonly stateAtom: StateAtom
   readonly validateAtom: Atom.Writable<any, any>
   readonly keepAliveActiveAtom: Atom.Writable<boolean, boolean>
   readonly autoSubmitAtom: Atom.Atom<unknown>
-  readonly operations: FormAtoms.FormOperations<any>
 }
 
 export interface KeepAliveRendererConfig {

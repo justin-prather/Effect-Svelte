@@ -1,5 +1,5 @@
 <script lang="ts">
-  import * as Registry from "@effect-atom/atom/Registry"
+  import * as Registry from "effect/reactivity/AtomRegistry"
   import { onDestroy, type Snippet } from "svelte"
   import { provideRegistry, type RegistryOptions } from "./RegistryContext.js"
 
@@ -8,7 +8,7 @@
      * Provide an existing registry instead of creating one. When given, the
      * provider will not dispose it on unmount.
      */
-    readonly registry?: Registry.Registry | undefined
+    readonly registry?: Registry.AtomRegistry | undefined
     readonly children?: Snippet | undefined
   }
 

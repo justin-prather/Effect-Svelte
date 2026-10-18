@@ -7,10 +7,10 @@
   import * as Schema from "effect/Schema"
   import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
-  class UsernameValidator extends Context.Tag("UsernameValidator")<
+  class UsernameValidator extends Context.Service<
     UsernameValidator,
     { readonly isTaken: (username: string) => Effect.Effect<boolean> }
-  >() {}
+  >()("UsernameValidator") {}
 
   const UsernameValidatorLive = Layer.succeed(UsernameValidator, {
     isTaken: (username) =>
@@ -25,9 +25,9 @@
 
   const UsernameField = Field.makeField(
     "username",
-    Schema.String.pipe(
-      Schema.minLength(3, { message: () => "Username must be at least 3 characters" }),
-      Schema.pattern(/^[a-zA-Z0-9_]+$/, { message: () => "Only letters, numbers, and underscores" })
+    Schema.String.check(
+      Schema.isMinLength(3, { message: "Username must be at least 3 characters" }),
+      Schema.isPattern(/^[a-zA-Z0-9_]+$/, { message: "Only letters, numbers, and underscores" })
     )
   )
 
@@ -36,7 +36,7 @@
       const validator = yield* UsernameValidator
       const isTaken = yield* validator.isTaken(values.username)
       if (isTaken) {
-        return { path: ["username"], message: "This username is already taken" }
+        return { path: ["username"], issue: "This username is already taken" }
       }
     })
   )

@@ -7,12 +7,12 @@
 
   const PasswordField = Field.makeField(
     "password",
-    Schema.String.pipe(Schema.minLength(8, { message: () => "Password must be at least 8 characters" }))
+    Schema.String.check(Schema.isMinLength(8, { message: "Password must be at least 8 characters" }))
   )
 
   const ConfirmPasswordField = Field.makeField(
     "confirmPassword",
-    Schema.String.pipe(Schema.nonEmptyString({ message: () => "Please confirm your password" }))
+    Schema.String.check(Schema.isNonEmpty({ message: "Please confirm your password" }))
   )
 
   const signupFormBuilder = FormBuilder.empty
@@ -20,7 +20,7 @@
     .addField(ConfirmPasswordField)
     .refine((values) => {
       if (values.password !== values.confirmPassword) {
-        return { path: ["confirmPassword"], message: "Passwords must match" }
+        return { path: ["confirmPassword"], issue: "Passwords must match" }
       }
     })
 

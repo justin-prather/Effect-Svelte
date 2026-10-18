@@ -5,7 +5,7 @@ import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
 const UsernameField = Field.makeField(
   "username",
-  Schema.String.pipe(Schema.minLength(3, { message: () => "Username must be at least 3 characters" }))
+  Schema.String.check(Schema.isMinLength(3, { message: "Username must be at least 3 characters" }))
 )
 
 const formBuilder = FormBuilder.empty.addField(UsernameField)

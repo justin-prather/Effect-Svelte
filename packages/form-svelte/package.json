@@ -28,20 +28,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@lucas-barake/effect-form": "^0.25.0"
+    "@lucas-barake/effect-form": "^1.1.1"
   },
   "peerDependencies": {
-    "@effect-atom/atom": "^0.5.0",
     "atom-svelte": "workspace:^",
-    "effect": "^3.19.15",
+    "effect": "^4.0.5",
     "svelte": "^5.7.0"
   },
   "devDependencies": {
-    "@effect-atom/atom": "^0.5.3",
     "@sveltejs/package": "^2.5.8",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "atom-svelte": "workspace:*",
-    "effect": "^3.21.4",
+    "effect": "^4.0.5",
     "jsdom": "^26.0.0",
     "svelte": "^5.56.4",
     "svelte-check": "^4.1.1",
