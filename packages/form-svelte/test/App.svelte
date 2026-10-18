@@ -2,9 +2,17 @@
   import { useAtomSet } from "atom-svelte"
   import * as Schema from "effect/Schema"
   import { Field, FormBuilder, FormSvelte } from "form-svelte"
+
   import TextInput from "./TextInput.svelte"
 
-  const { onSubmitSpy }: { onSubmitSpy: (decoded: unknown) => void } = $props()
+  const {
+    onSubmitSpy
+  }: {
+    onSubmitSpy: (decoded: {
+      readonly name: string
+      readonly tags: ReadonlyArray<{ readonly label: string }>
+    }) => void
+  } = $props()
 
   const builder = FormBuilder.empty
     .addField("name", Schema.NonEmptyString)

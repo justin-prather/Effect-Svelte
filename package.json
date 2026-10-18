@@ -1,18 +1,25 @@
 {
   "name": "effect-svelte",
   "private": true,
-  "type": "module",
   "workspaces": [
     "packages/*",
     "examples/*"
   ],
+  "type": "module",
   "scripts": {
     "build": "bun run --cwd packages/atom-svelte build && bun run --cwd packages/form-svelte build",
+    "build:examples": "bun run build && bun run --cwd examples/atom-demo build && bun run --cwd examples/form-demo build",
     "check": "bun run build && bun run --cwd packages/atom-svelte check && bun run --cwd packages/form-svelte check",
-    "test": "bun run build && bun run --cwd packages/atom-svelte test && bun run --cwd packages/form-svelte test",
-    "build:examples": "bun run build && bun run --cwd examples/atom-demo build && bun run --cwd examples/form-demo build"
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix --deny-warnings",
+    "test": "bun run build && bun run --cwd packages/atom-svelte test && bun run --cwd packages/form-svelte test"
   },
   "devDependencies": {
+    "@oxlint/plugins": "1.88.0",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
     "typescript": "^5.9.3"
   }
 }

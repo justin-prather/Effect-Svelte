@@ -7,7 +7,9 @@
 
   const PasswordField = Field.makeField(
     "password",
-    Schema.String.check(Schema.isMinLength(8, { message: "Password must be at least 8 characters" }))
+    Schema.String.check(
+      Schema.isMinLength(8, { message: "Password must be at least 8 characters" })
+    )
   )
 
   const ConfirmPasswordField = Field.makeField(
@@ -31,9 +33,10 @@
       confirmPassword: TextInput
     },
     onSubmit: () =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("500 millis")
         yield* Effect.log("Password set for signup")
+
         return { success: true }
       })
   })

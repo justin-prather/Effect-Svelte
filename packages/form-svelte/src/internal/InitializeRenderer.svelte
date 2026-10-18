@@ -2,6 +2,7 @@
   import { useAtomMount, useAtomSet, useAtomValue, useRegistry } from "atom-svelte"
   import * as Option from "effect/Option"
   import type { Snippet } from "svelte"
+
   import type { InitializeRendererConfig } from "./types.js"
 
   const {
@@ -25,11 +26,13 @@
   // form state available on the first pass (unlike React, no effect timing is
   // needed here). `config` never changes for a given generated component.
   // svelte-ignore state_referenced_locally
-  const shouldInit = !registry.get(config.keepAliveActiveAtom) ||
-    Option.isNone(registry.get(config.stateAtom))
+  const shouldInit =
+    !registry.get(config.keepAliveActiveAtom) || Option.isNone(registry.get(config.stateAtom))
+
   if (shouldInit) {
     // svelte-ignore state_referenced_locally
     initialize(props.defaultValues)
+
     // svelte-ignore state_referenced_locally
     if (props.validateOnInit) {
       triggerValidate(undefined)

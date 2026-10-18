@@ -3,6 +3,7 @@
   import TextInput from "$lib/components/TextInput.svelte"
   import { Result, useAtomSet, useAtomSubscribe, useAtomValue } from "atom-svelte"
   import * as Effect from "effect/Effect"
+  import * as Match from "effect/Match"
   import * as Schema from "effect/Schema"
   import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
@@ -48,14 +49,16 @@
       zip: HiddenField
     },
     onSubmit: (_, { decoded }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("1 second")
         yield* Effect.log(`Order submitted for ${decoded.firstName} ${decoded.lastName}`)
+
         return { orderId: `ORD-${Date.now()}` }
       })
   })
 
   type Step1Data = { firstName: string; lastName: string }
+
   type Step2Data = { street: string; city: string; zip: string }
 </script>
 
@@ -121,7 +124,11 @@
   }
 
   const stepTitle = $derived(
-    currentStep === 1 ? "Personal Info" : currentStep === 2 ? "Address" : "Review"
+    Match.value(currentStep).pipe(
+      Match.when(1, () => "Personal Info"),
+      Match.when(2, () => "Address"),
+      Match.orElse(() => "Review")
+    )
   )
 
   const orderId = $derived(
@@ -136,8 +143,8 @@
 <div class="pageContainerMedium">
   <h1 class="pageTitle">Multi-Step Wizard</h1>
   <p class="pageDescription">
-    Three-step form using <code>.merge()</code> to combine builders. Each step validates
-    independently, then merges into final form.
+    Three-step form using <code>.merge()</code> to combine builders. Each step validates independently,
+    then merges into final form.
   </p>
 
   <div class="progressBar">

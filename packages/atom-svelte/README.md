@@ -68,6 +68,8 @@ The atom modules are unstable upstream. Minor Effect releases can change their A
 
 - Values are read via `.current` (reactive getter), not returned directly from the hook.
 - `useAtom` returns a single read/write box instead of a `[value, setter]` tuple.
+- `current` reads the atom's read type and accepts its write type on assignment.
+  `bind:current` remains available when both types match.
 - React's `Suspense`-throwing `useAtomSuspense` becomes a stable-promise box for `{#await}`.
 - No scheduler dependency; the registry uses its default task scheduling.
 - `RegistryProvider` disposes registries it creates. An external registry remains the caller's responsibility.

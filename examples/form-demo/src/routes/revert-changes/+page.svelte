@@ -25,9 +25,10 @@
       email: TextInput
     },
     onSubmit: (_, { decoded }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("500 millis")
         yield* Effect.log(`Profile updated: ${decoded.name}`)
+
         return { savedAt: new Date() }
       })
   })

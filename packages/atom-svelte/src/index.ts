@@ -16,6 +16,7 @@ export * as Atom from "effect/reactivity/Atom"
  * @category re-exports
  */
 export * as AtomRegistry from "effect/reactivity/AtomRegistry"
+
 export * as Registry from "effect/reactivity/AtomRegistry"
 
 /**
@@ -23,6 +24,7 @@ export * as Registry from "effect/reactivity/AtomRegistry"
  * @category re-exports
  */
 export * as AsyncResult from "effect/reactivity/AsyncResult"
+
 export * as Result from "effect/reactivity/AsyncResult"
 
 /**

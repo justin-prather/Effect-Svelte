@@ -23,7 +23,9 @@
 
   const PasswordField = Field.makeField(
     "password",
-    Schema.String.check(Schema.isMinLength(8, { message: "Password must be at least 8 characters" }))
+    Schema.String.check(
+      Schema.isMinLength(8, { message: "Password must be at least 8 characters" })
+    )
   )
 
   const loginFormBuilder = FormBuilder.empty.addField(EmailField).addField(PasswordField)
@@ -34,7 +36,7 @@
       password: TextInput
     },
     onSubmit: (_, { decoded }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("500 millis")
 
         if (decoded.email === "locked@example.com") {
@@ -49,6 +51,7 @@
         }
 
         yield* Effect.log(`Login successful: ${decoded.email}`)
+
         return { email: decoded.email }
       })
   })
@@ -77,18 +80,17 @@
     Result.builder(submitResult.current)
       .onWaiting(() => null)
       .onSuccess((value) => alert("success", `Login successful! Welcome, ${value.email}`))
-      .onErrorTag(
-        "InvalidCredentialsError",
-        (error) =>
-          alert("error", `Invalid credentials for ${error.email}. Please check your email and password.`)
+      .onErrorTag("InvalidCredentialsError", (error) =>
+        alert(
+          "error",
+          `Invalid credentials for ${error.email}. Please check your email and password.`
+        )
       )
-      .onErrorTag(
-        "AccountLockedError",
-        (error) =>
-          alert(
-            "warning",
-            `Account ${error.email} is locked. Try again at ${error.unlockAt.toLocaleTimeString()}.`
-          )
+      .onErrorTag("AccountLockedError", (error) =>
+        alert(
+          "warning",
+          `Account ${error.email} is locked. Try again at ${error.unlockAt.toLocaleTimeString()}.`
+        )
       )
       .onErrorTag("SchemaError", () => alert("error", "Please fix the validation errors above."))
       .onDefect((defect) => alert("error", `Unexpected error: ${String(defect)}`))

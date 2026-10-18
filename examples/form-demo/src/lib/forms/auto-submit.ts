@@ -14,12 +14,15 @@ const settingsFormBuilder = FormBuilder.empty.addField(DisplayNameField).addFiel
 
 const fields = { displayName: TextInput, bio: TextInput }
 
-const save = (label: string) => (_: void, { decoded }: { readonly decoded: { readonly displayName: string } }) =>
-  Effect.gen(function*() {
-    yield* Effect.sleep("300 millis")
-    yield* Effect.log(`${label}: ${decoded.displayName}`)
-    return { savedAt: new Date() }
-  })
+const save =
+  (label: string) =>
+  (_: void, { decoded }: { readonly decoded: { readonly displayName: string } }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep("300 millis")
+      yield* Effect.log(`${label}: ${decoded.displayName}`)
+
+      return { savedAt: new Date() }
+    })
 
 export const autoSubmitOnChangeForm = FormSvelte.make(settingsFormBuilder, {
   mode: { validation: "onChange", debounce: "500 millis", autoSubmit: true },

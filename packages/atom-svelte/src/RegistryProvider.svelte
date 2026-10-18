@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Registry from "effect/reactivity/AtomRegistry"
   import { onDestroy, type Snippet } from "svelte"
+
   import { provideRegistry, type RegistryOptions } from "./RegistryContext.js"
 
   interface Props extends RegistryOptions {
@@ -24,8 +25,9 @@
   // The registry is intentionally created once from the initial props; it is
   // not recreated when props change.
   // svelte-ignore state_referenced_locally
-  const provided = registry ??
-    Registry.make({ scheduleTask, initialValues, timeoutResolution, defaultIdleTTL })
+  const provided =
+    registry ?? Registry.make({ scheduleTask, initialValues, timeoutResolution, defaultIdleTTL })
+
   provideRegistry(provided)
 
   // svelte-ignore state_referenced_locally

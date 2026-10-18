@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Hydration from "effect/reactivity/Hydration"
   import type { Snippet } from "svelte"
+
   import { useRegistry } from "./RegistryContext.js"
 
   interface Props {
@@ -16,6 +17,7 @@
   // first render (including during SSR hydration).
   // svelte-ignore state_referenced_locally
   let hydrated = state
+
   // svelte-ignore state_referenced_locally
   if (state !== undefined) {
     // svelte-ignore state_referenced_locally
@@ -27,6 +29,7 @@
     if (state !== undefined && state !== hydrated) {
       Hydration.hydrate(registry, state)
     }
+
     hydrated = state
   })
 </script>

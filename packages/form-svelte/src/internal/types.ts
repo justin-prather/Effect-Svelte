@@ -1,7 +1,7 @@
-import type * as Atom from "effect/reactivity/Atom"
 import type { FieldState as FieldStateModule, FormAtoms } from "@lucas-barake/effect-form"
 import type * as FormBuilder from "@lucas-barake/effect-form/FormBuilder"
 import type * as Option from "effect/Option"
+import type * as Atom from "effect/reactivity/Atom"
 import type * as Schema from "effect/Schema"
 import type { Component } from "svelte"
 
@@ -15,11 +15,11 @@ export type StateAtom = Atom.Writable<
   Option.Option<FormBuilder.FormState<any>>
 >
 
-export interface FieldRendererConfig {
+export interface FieldRendererConfig<P = Record<string, never>> {
   readonly fieldKey: string
   readonly schema: Schema.Top
   readonly getOrCreateFieldAtoms: (fieldPath: string, schema: Schema.Top) => FormAtoms.FieldAtoms
-  readonly component: Component<FieldComponentProps<any, any>>
+  readonly component: Component<FieldComponentProps<any, P>>
   readonly onBlurSubmitAtom: Atom.Writable<void, void>
 }
 

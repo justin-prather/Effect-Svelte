@@ -30,7 +30,8 @@ export const defaultRegistry: Registry.AtomRegistry = Registry.make({ defaultIdl
  * @since 1.0.0
  * @category context
  */
-export const useRegistry = (): Registry.AtomRegistry => getContext<Registry.AtomRegistry>(registryKey) ?? defaultRegistry
+export const useRegistry = (): Registry.AtomRegistry =>
+  getContext<Registry.AtomRegistry>(registryKey) ?? defaultRegistry
 
 /**
  * Provide a `Registry` to all child components via the Svelte context. Must
@@ -42,7 +43,8 @@ export const useRegistry = (): Registry.AtomRegistry => getContext<Registry.Atom
  * @since 1.0.0
  * @category context
  */
-export const provideRegistry = (registry: Registry.AtomRegistry): Registry.AtomRegistry => setContext(registryKey, registry)
+export const provideRegistry = (registry: Registry.AtomRegistry): Registry.AtomRegistry =>
+  setContext(registryKey, registry)
 
 /**
  * Options for creating a `Registry`, mirroring `Registry.make`.

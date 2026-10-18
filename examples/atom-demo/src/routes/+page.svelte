@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "atom-svelte"
   import { countAtom, doubledAtom, greetAtom, quoteAtom } from "$lib/atoms"
+  import { Result, useAtom, useAtomRefresh, useAtomSet, useAtomValue } from "atom-svelte"
 
   // --- counter: read + write, bind:, derived atom -------------------------
   const count = useAtom(countAtom)
