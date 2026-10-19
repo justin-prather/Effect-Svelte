@@ -35,6 +35,13 @@ try {
     assert.equal(result.status, 0, `${name} must build with an incompatible parent cookie package`)
     const html = await readFile(join(target, "build/index.html"), "utf8")
     assert.ok(html.includes("<body"), `${name} must produce prerendered HTML`)
+    // Guard the guard: if a compatible cookie ever becomes resolvable from the example's own
+    // node_modules, removing ssr.noExternal would still build, so assert on the bundle itself.
+    const server = await readFile(join(target, ".svelte-kit/output/server/index.js"), "utf8")
+    assert.ok(
+      !/(?:from\s*["']cookie["']|\brequire\s*\(\s*["']cookie["']\s*\))/.test(server),
+      `${name} must inline SvelteKit's cookie dependency in the server bundle`
+    )
   }
 } finally {
   await rm(temporary, { recursive: true, force: true })

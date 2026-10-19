@@ -16,6 +16,9 @@ scripts already chain this correctly — prefer them:
 bun run check            # build both packages, then svelte-check each (0 errors AND 0 warnings expected)
 bun run test             # build, then vitest (jsdom) in both packages
 bun run build:examples   # build packages, then build + prerender both SvelteKit examples
+bun run test:examples    # adversarial SSR check: build both examples outside the repo with an incompatible parent cookie
+bun run lint             # Oxlint, including the vendored anti-slop rules
+bun run format:check     # Oxfmt, including Svelte components
 ```
 
 Symptom of a stale/missing dist: `Cannot find module 'atom-svelte'` or types collapsing to `any`
@@ -28,12 +31,14 @@ Fix by rebuilding, not by loosening types.
 | --- | --- |
 | `svelte-check` (via `bun run check`) | source + test/example components typecheck, including extra-props inference through `Component<>` |
 | `vitest` (via `bun run test`) | client runtime behavior: subscriptions, `bind:current`, registry isolation, promise-mode, full form flow (init → edit → array paths → validation → submit) |
-| `bun run build:examples` | **SSR** — both examples prerender (`prerender = true`), which executes the generated components server-side. Confirm by grepping the output, e.g. `grep 'placeholder="Ada' examples/form-demo/build/index.html` |
+| `bun run build:examples` | **SSR** — both examples prerender (`prerender = true`), which executes the generated components server-side. Confirm by grepping the output, e.g. `grep 'Basic Form' examples/form-demo/build/index.html` |
+| `bun run test:examples` | **nested-workspace SSR isolation** — copies each example outside the repo next to an incompatible parent `cookie@2` package, asserts the build prerenders, and asserts the generated server bundle has no bare `cookie` import |
 | example `check` scripts (`bun run --cwd examples/<app> check`) | the public API from a consumer's perspective (runs `svelte-kit sync` first) |
 
 A change to hooks/reactivity plumbing or the form component factory is not verified until all
 three layers pass — typecheck alone misses runtime subscription bugs, and jsdom tests alone miss
-SSR.
+SSR. Changes touching SSR dependency resolution, workspace layout, or the examples' build config
+also need `bun run test:examples`.
 
 ## Running the apps (manual verification)
 

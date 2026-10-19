@@ -425,7 +425,7 @@ export const useAtomRef = <A>(
 
   return {
     get current() {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      // oxlint-disable-next-line no-unused-expressions -- bare read subscribes to the ref
       version
 
       return getRef().value
