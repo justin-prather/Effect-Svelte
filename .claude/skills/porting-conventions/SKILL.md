@@ -6,15 +6,15 @@ description: Use before adding or changing any public API in packages/atom-svelt
 # Porting conventions (React → Svelte 5)
 
 Prime directive: **hold true to the upstream React API where possible, but use Svelte practices.**
-Before implementing anything, read the upstream source in `references/` (see the `references`
-skill) — atom-react/form-react for the contract, atom-vue/atom-solid for how other fine-grained
-frameworks adapted it.
+Before implementing anything, read the upstream source in the gitignored `references/` clones
+(clone `Effect-TS/effect` and `lucas-barake/effect-form` there if absent) — atom-react/form-react
+for the contract, atom-vue/atom-solid for how other fine-grained frameworks adapted it.
 
 ## Translation rules
 
 | React | Here |
 | --- | --- |
-| hook returns a value (re-render on change) | return a box with a reactive `current` getter (`$state` version counter + `$effect` registry subscription; getter always reads fresh from the registry so it is SSR-safe and never stale pre-mount) |
+| hook returns a value (re-render on change) | return a box with a reactive `current` getter that always reads fresh from the registry (SSR-safe); atom hooks subscribe lazily through `createSubscriber`, so deferred reads and thunk switches track correctly |
 | `useAtom` → `[value, setter]` tuple | single box `{ current, set }`; assigning `current` writes to the registry so `bind:current` works |
 | `useMemo` on `[atom, f]` | memoize manually inside the hook (see `useAtomValue`'s `Atom.map` cache) — `$derived` alone recreates atoms |
 | static atom argument | also accept a thunk `() => atom` (`AtomOrGetter`); discriminate with `Atom.isAtom`, never `typeof === "function"` |
@@ -23,13 +23,21 @@ frameworks adapted it.
 | Suspense (throw promise) | stable cached promise for `{#await}` (`useAtomSuspense`) |
 | `React.FC` in types | `Component<Props>` from `svelte`; children become a `children?: Snippet` prop |
 
+The atom read path is deliberately **lazy**. `makeAtomState` resolves the target inside the getter
+and calls a per-target `createSubscriber` (`svelte/reactivity`), which subscribes on the first
+tracked read and unsubscribes when the last reader goes away. Do not "simplify" it back to an
+init-time `$effect` + `$state` version counter — that breaks deferred reads (reads before mount,
+reads inside `$derived`, and thunk-driven atom switches). `useAtomRef` keeps the version-counter
+pattern because it binds the ref once at init.
+
 Keep upstream hook/function names (`useAtom*`, `FormSvelte.make`) even though "use" is not Svelte
 idiom — API fidelity wins, and the vue/solid ports do the same.
 
 ## Hard constraints
 
-- All hooks require **component-init context** ($effect + getContext). Same constraint as every
-  other framework binding; do not try to lift it.
+- All hooks require **component-init context** (`getContext`, plus `$effect` for the mount, set,
+  refresh, subscribe, and ref hooks). Same constraint as every other framework binding; do not try
+  to lift it.
 - Runes only work in `.svelte` / `.svelte.ts` / `.svelte.js` files — reactive code goes in
   `Hooks.svelte.ts`-style modules.
 - Prefer passing thunks (`useAtomSet(() => config.atom)`) over `svelte-ignore

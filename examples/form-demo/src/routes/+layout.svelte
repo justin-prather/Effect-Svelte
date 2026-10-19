@@ -2,6 +2,7 @@
   import { page } from "$app/state"
   import { RegistryProvider } from "atom-svelte"
   import type { Snippet } from "svelte"
+
   import "../app.css"
 
   const { children }: { children: Snippet } = $props()
@@ -25,7 +26,11 @@
       <ul class="navList">
         {#each examples as example (example.href)}
           <li>
-            <a href={example.href} class="navLink" class:active={page.url.pathname === example.href}>
+            <a
+              href={example.href}
+              class="navLink"
+              class:active={page.url.pathname === example.href}
+            >
               {example.label}
             </a>
           </li>

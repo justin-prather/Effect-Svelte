@@ -1,14 +1,18 @@
-<script lang="ts">
+<script lang="ts" generics="P extends Record<string, unknown>">
   import { useAtom, useAtomMount, useAtomSet, useAtomValue } from "atom-svelte"
   import { getContext } from "svelte"
+
   import { arrayItemContextKey, type ArrayItemContext } from "./context.js"
   import type { FieldRendererConfig } from "./types.js"
 
-  const { config, props }: { config: FieldRendererConfig; props: Record<string, unknown> } = $props()
+  const { config, props }: { config: FieldRendererConfig<P>; props: P } = $props()
 
   const arrayCtx = getContext<ArrayItemContext | undefined>(arrayItemContextKey)
 
-  const fieldPath = $derived(arrayCtx ? `${arrayCtx.parentPath}.${config.fieldKey}` : config.fieldKey)
+  const fieldPath = $derived(
+    arrayCtx ? `${arrayCtx.parentPath}.${config.fieldKey}` : config.fieldKey
+  )
+
   const fieldAtoms = $derived(config.getOrCreateFieldAtoms(fieldPath, config.schema))
 
   const value = useAtom(() => fieldAtoms.valueAtom)
@@ -27,7 +31,7 @@
     get value() {
       return value.current
     },
-    onChange: (newValue: unknown) => {
+    onChange: (newValue: Parameters<typeof value.set>[0]) => {
       value.set(newValue)
     },
     onBlur: () => {

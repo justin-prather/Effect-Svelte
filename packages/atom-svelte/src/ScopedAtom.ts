@@ -1,12 +1,12 @@
 /**
- * A port of `@effect-atom/atom-react`'s `ScopedAtom`, using Svelte's context
+ * A port of `@effect/atom-react`'s `ScopedAtom`, using Svelte's context
  * API. Instead of a `Provider` component, call `provide()` during the
  * initialization of the component that should own the atom; descendants can
  * then access it with `use()`.
  *
  * @since 1.0.0
  */
-import type * as Atom from "@effect-atom/atom/Atom"
+import type * as Atom from "effect/reactivity/Atom"
 import { getContext, setContext } from "svelte"
 
 /**
@@ -47,15 +47,19 @@ export const make = <A extends Atom.Atom<any>, Input = never>(
   f: (() => A) | ((input: Input) => A)
 ): ScopedAtom<A, Input> => {
   const key = Symbol("atom-svelte/ScopedAtom")
+
   return {
     [TypeId]: TypeId,
     use: () => {
       const atom = getContext<A | undefined>(key)
+
       if (atom === undefined) {
         throw new Error("ScopedAtom used outside of a component that provides it")
       }
+
       return atom
     },
+    // SAFETY: The conditional rest tuple contains Input unless the factory takes no arguments.
     provide: (...args) => setContext(key, f(args[0] as Input))
   }
 }

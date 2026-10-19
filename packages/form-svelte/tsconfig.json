@@ -4,5 +4,11 @@
     "rootDir": ".",
     "types": ["svelte", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte.ts", "src/**/*.svelte", "test/**/*.ts", "test/**/*.svelte"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte.ts",
+    "src/**/*.svelte",
+    "test/**/*.ts",
+    "test/**/*.svelte"
+  ]
 }

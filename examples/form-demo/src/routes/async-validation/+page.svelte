@@ -7,16 +7,17 @@
   import * as Schema from "effect/Schema"
   import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
-  class UsernameValidator extends Context.Tag("UsernameValidator")<
+  class UsernameValidator extends Context.Service<
     UsernameValidator,
     { readonly isTaken: (username: string) => Effect.Effect<boolean> }
-  >() {}
+  >()("UsernameValidator") {}
 
   const UsernameValidatorLive = Layer.succeed(UsernameValidator, {
     isTaken: (username) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("800 millis")
         const reserved = ["admin", "root", "taken"]
+
         return reserved.includes(username.toLowerCase())
       })
   })
@@ -25,18 +26,19 @@
 
   const UsernameField = Field.makeField(
     "username",
-    Schema.String.pipe(
-      Schema.minLength(3, { message: () => "Username must be at least 3 characters" }),
-      Schema.pattern(/^[a-zA-Z0-9_]+$/, { message: () => "Only letters, numbers, and underscores" })
+    Schema.String.check(
+      Schema.isMinLength(3, { message: "Username must be at least 3 characters" }),
+      Schema.isPattern(/^[a-zA-Z0-9_]+$/, { message: "Only letters, numbers, and underscores" })
     )
   )
 
   const usernameFormBuilder = FormBuilder.empty.addField(UsernameField).refineEffect((values) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const validator = yield* UsernameValidator
       const isTaken = yield* validator.isTaken(values.username)
+
       if (isTaken) {
-        return { path: ["username"], message: "This username is already taken" }
+        return { path: ["username"], issue: "This username is already taken" }
       }
     })
   )
@@ -46,9 +48,10 @@
     mode: { validation: "onChange", debounce: "300 millis" },
     fields: { username: TextInput },
     onSubmit: (_, { decoded }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("500 millis")
         yield* Effect.log(`Username registered: ${decoded.username}`)
+
         return { username: decoded.username }
       })
   })
@@ -63,8 +66,7 @@
 <div class="pageContainer">
   <h1 class="pageTitle">Async Validation</h1>
   <p class="pageDescription">
-    Using <code>.refineEffect()</code> with Effect services. Validation runs asynchronously with
-    debouncing.
+    Using <code>.refineEffect()</code> with Effect services. Validation runs asynchronously with debouncing.
   </p>
   <p class="pageHint">
     Reserved usernames: <code>admin</code>, <code>root</code>, <code>taken</code>

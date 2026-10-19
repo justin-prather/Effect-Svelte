@@ -10,7 +10,7 @@
   const TodosField = Field.makeArrayField(
     "todos",
     Schema.Struct({
-      text: Schema.String.pipe(Schema.nonEmptyString({ message: () => "Todo text is required" })),
+      text: Schema.String.check(Schema.isNonEmpty({ message: "Todo text is required" })),
       completed: Schema.Boolean
     })
   )
@@ -25,8 +25,9 @@
       }
     },
     onSubmit: (_, { decoded }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.log(`Submitting ${decoded.todos.length} todos`)
+
         return { count: decoded.todos.length }
       })
   })
@@ -86,11 +87,7 @@
               <button type="button" class="buttonIndigo" onclick={() => swap(0, 1)}>
                 Swap 0 ↔ 1
               </button>
-              <button
-                type="button"
-                class="buttonPurple"
-                onclick={() => move(0, items.length - 1)}
-              >
+              <button type="button" class="buttonPurple" onclick={() => move(0, items.length - 1)}>
                 Move first → last
               </button>
             {/if}

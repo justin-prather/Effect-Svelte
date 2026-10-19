@@ -19,8 +19,9 @@ const quotes = [
  * `Initial`, becomes `waiting`, then resolves. `registry.refresh` re-runs it.
  */
 export const quoteAtom = Atom.make(
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     yield* Effect.sleep("600 millis")
+
     return quotes[Math.floor(Math.random() * quotes.length)]
   })
 )

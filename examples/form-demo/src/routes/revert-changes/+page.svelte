@@ -8,12 +8,12 @@
 
   const NameField = Field.makeField(
     "name",
-    Schema.String.pipe(Schema.nonEmptyString({ message: () => "Name is required" }))
+    Schema.String.check(Schema.isNonEmpty({ message: "Name is required" }))
   )
 
   const EmailField = Field.makeField(
     "email",
-    Schema.String.pipe(Schema.nonEmptyString({ message: () => "Email is required" }))
+    Schema.String.check(Schema.isNonEmpty({ message: "Email is required" }))
   )
 
   const profileFormBuilder = FormBuilder.empty.addField(NameField).addField(EmailField)
@@ -25,9 +25,10 @@
       email: TextInput
     },
     onSubmit: (_, { decoded }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* Effect.sleep("500 millis")
         yield* Effect.log(`Profile updated: ${decoded.name}`)
+
         return { savedAt: new Date() }
       })
   })

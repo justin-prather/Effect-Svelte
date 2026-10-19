@@ -1,14 +1,19 @@
 {
   "name": "atom-svelte",
   "version": "0.1.0",
-  "description": "Svelte 5 bindings for @effect-atom/atom — a reactive toolkit for Effect",
-  "type": "module",
+  "description": "Svelte 5 bindings for Effect v4 atoms",
   "license": "MIT",
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/*.test.*"
+  ],
+  "type": "module",
   "sideEffects": [
     "**/*.svelte"
   ],
-  "svelte": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "svelte": "./dist/index.js",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -17,31 +22,24 @@
       "default": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "!dist/**/*.test.*"
-  ],
   "scripts": {
     "build": "svelte-package -i src -o dist",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run"
   },
-  "peerDependencies": {
-    "@effect-atom/atom": "^0.5.0",
-    "effect": "^3.19.0",
-    "svelte": "^5.7.0"
-  },
   "devDependencies": {
-    "@effect-atom/atom": "^0.5.3",
     "@sveltejs/package": "^2.5.8",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
-    "effect": "^3.21.4",
+    "effect": "^4.0.5",
     "jsdom": "^26.0.0",
     "svelte": "^5.56.4",
     "svelte-check": "^4.1.1",
     "typescript": "^5.9.3",
     "vite": "^7.0.0",
     "vitest": "^3.2.0"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.5",
+    "svelte": "^5.7.0"
   }
 }

@@ -1,18 +1,17 @@
 {
   "name": "form-demo",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "dev": "vite dev",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@effect-atom/atom": "^0.5.3",
     "atom-svelte": "workspace:*",
-    "effect": "^3.21.4",
+    "effect": "^4.0.5",
     "form-svelte": "workspace:*"
   },
   "devDependencies": {

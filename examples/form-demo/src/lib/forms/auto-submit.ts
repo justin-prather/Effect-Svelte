@@ -5,7 +5,7 @@ import { Field, FormBuilder, FormSvelte } from "form-svelte"
 
 const DisplayNameField = Field.makeField(
   "displayName",
-  Schema.String.pipe(Schema.nonEmptyString({ message: () => "Display name is required" }))
+  Schema.String.check(Schema.isNonEmpty({ message: "Display name is required" }))
 )
 
 const BioField = Field.makeField("bio", Schema.String)
@@ -14,12 +14,15 @@ const settingsFormBuilder = FormBuilder.empty.addField(DisplayNameField).addFiel
 
 const fields = { displayName: TextInput, bio: TextInput }
 
-const save = (label: string) => (_: void, { decoded }: { readonly decoded: { readonly displayName: string } }) =>
-  Effect.gen(function*() {
-    yield* Effect.sleep("300 millis")
-    yield* Effect.log(`${label}: ${decoded.displayName}`)
-    return { savedAt: new Date() }
-  })
+const save =
+  (label: string) =>
+  (_: void, { decoded }: { readonly decoded: { readonly displayName: string } }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep("300 millis")
+      yield* Effect.log(`${label}: ${decoded.displayName}`)
+
+      return { savedAt: new Date() }
+    })
 
 export const autoSubmitOnChangeForm = FormSvelte.make(settingsFormBuilder, {
   mode: { validation: "onChange", debounce: "500 millis", autoSubmit: true },

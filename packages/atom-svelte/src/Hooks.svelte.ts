@@ -1,5 +1,5 @@
 /**
- * Svelte 5 ports of the `@effect-atom/atom-react` hooks.
+ * Svelte 5 ports of the `@effect/atom-react` hooks.
  *
  * All functions must be called during component initialization (they rely on
  * `$effect` and Svelte's context API), mirroring the constraints of the
@@ -11,14 +11,17 @@
  *
  * @since 1.0.0
  */
-import * as Atom from "@effect-atom/atom/Atom"
-import type * as AtomRef from "@effect-atom/atom/AtomRef"
-import * as Registry from "@effect-atom/atom/Registry"
-import * as Result from "@effect-atom/atom/Result"
+
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import { globalValue } from "effect/GlobalValue"
+import * as Predicate from "effect/Predicate"
+import * as Result from "effect/reactivity/AsyncResult"
+import * as Atom from "effect/reactivity/Atom"
+import type * as AtomRef from "effect/reactivity/AtomRef"
+import * as Registry from "effect/reactivity/AtomRegistry"
+import { createSubscriber } from "svelte/reactivity"
+
 import { useRegistry } from "./RegistryContext.js"
 
 /**
@@ -43,7 +46,8 @@ export interface ReadonlyAtomState<A> {
  * @category models
  */
 export interface AtomState<R, W, Set> {
-  current: R
+  get current(): R
+  set current(value: W)
   readonly set: Set
 }
 
@@ -51,55 +55,73 @@ export interface AtomState<R, W, Set> {
  * @since 1.0.0
  * @category models
  */
-export type AtomSetter<R, W, Mode extends "value" | "promise" | "promiseExit" = never> = "promise" extends Mode ? (
-    (value: W) => Promise<Result.Result.Success<R>>
-  ) :
-  "promiseExit" extends Mode ? (
-      (value: W) => Promise<Exit.Exit<Result.Result.Success<R>, Result.Result.Failure<R>>>
-    ) :
-  ((value: W | ((value: R) => W)) => void)
+export type AtomSetter<
+  R,
+  W,
+  Mode extends "value" | "promise" | "promiseExit" = never
+> = "promise" extends Mode
+  ? (value: W) => Promise<Result.AsyncResult.Success<R>>
+  : "promiseExit" extends Mode
+    ? (value: W) => Promise<Exit.Exit<Result.AsyncResult.Success<R>, Result.AsyncResult.Failure<R>>>
+    : (value: W | ((value: R) => W)) => void
 
 type AtomOrGetter<A extends Atom.Atom<any>> = A | (() => A)
 
-const toGetter = <A extends Atom.Atom<any>>(atom: AtomOrGetter<A>): () => A =>
-  Atom.isAtom(atom) ? () => atom : atom as () => A
+// SAFETY: Atom.isAtom excludes the atom branch, leaving the caller's getter.
+const toGetter = <A extends Atom.Atom<any>>(atom: AtomOrGetter<A>): (() => A) =>
+  Atom.isAtom(atom) ? () => atom : (atom as () => A)
 
-const makeAtomState = <A>(registry: Registry.Registry, atom: () => Atom.Atom<A>): ReadonlyAtomState<A> => {
-  let version = $state(0)
-  $effect(() => {
-    return registry.subscribe(atom(), () => {
-      version += 1
-    })
-  })
+const makeAtomState = <A>(
+  registry: Registry.AtomRegistry,
+  atom: () => Atom.Atom<A>
+): ReadonlyAtomState<A> => {
+  const subscriptions = new WeakMap<Atom.Atom<A>, () => void>()
+
   return {
     get current() {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      version
-      return registry.get(atom())
+      // Resolve the target in the reader's tracking context so thunk changes
+      // invalidate the reader. Each target needs its own subscription lifetime.
+      const target = atom()
+      let subscribe = subscriptions.get(target)
+
+      if (subscribe === undefined) {
+        // A registry read can initialize/rebuild an atom and synchronously
+        // notify listeners. Svelte's external-store bridge safely invalidates
+        // readers even when that notification happens inside a derived read.
+        subscribe = createSubscriber((update) =>
+          registry.subscribe(target, update, { immediate: true })
+        )
+        subscriptions.set(target, subscribe)
+      }
+
+      subscribe()
+
+      return registry.get(target)
     }
   }
 }
 
-const initialValuesSet = globalValue(
-  "atom-svelte/initialValuesSet",
-  () => new WeakMap<Registry.Registry, WeakSet<Atom.Atom<any>>>()
-)
+const initialValuesSet = new WeakMap<Registry.AtomRegistry, WeakSet<Atom.Atom<any>>>()
 
 /**
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom<any>, any]>): void => {
+export const useAtomInitialValues = (
+  initialValues: Iterable<readonly [Atom.Atom<any>, any]>
+): void => {
   const registry = useRegistry()
   let set = initialValuesSet.get(registry)
+
   if (set === undefined) {
     set = new WeakSet()
     initialValuesSet.set(registry, set)
   }
+
   for (const [atom, value] of initialValues) {
     if (!set.has(atom)) {
       set.add(atom)
-      ;(registry as any).ensureNode(atom).setValue(value)
+      registry.ensureNode(atom).setInitialValue(value)
     }
   }
 }
@@ -110,53 +132,71 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomValue: {
-  <A>(atom: AtomOrGetter<Atom.Atom<A>>): ReadonlyAtomState<A>
-  <A, B>(atom: AtomOrGetter<Atom.Atom<A>>, f: (_: A) => B): ReadonlyAtomState<B>
-} = (<A>(atom: AtomOrGetter<Atom.Atom<A>>, f?: (_: A) => A): ReadonlyAtomState<A> => {
+export function useAtomValue<A>(atom: AtomOrGetter<Atom.Atom<A>>): ReadonlyAtomState<A>
+export function useAtomValue<A, B>(
+  atom: AtomOrGetter<Atom.Atom<A>>,
+  f: (_: A) => B
+): ReadonlyAtomState<B>
+export function useAtomValue<A, B>(
+  atom: AtomOrGetter<Atom.Atom<A>>,
+  f?: (_: A) => B
+): ReadonlyAtomState<A> | ReadonlyAtomState<B> {
   const registry = useRegistry()
   const getAtom = toGetter(atom)
+
   if (f) {
     // memoize Atom.map per source atom, so a stable atom yields a stable
     // mapped atom across reads
     let source: Atom.Atom<A> | undefined
-    let mapped: Atom.Atom<A> | undefined
+    let mapped: Atom.Atom<B> | undefined
+
     return makeAtomState(registry, () => {
       const s = getAtom()
-      if (s !== source) {
+
+      if (s !== source || mapped === undefined) {
         source = s
         mapped = Atom.map(s, f)
       }
-      return mapped!
+
+      return mapped
     })
   }
-  return makeAtomState(registry, getAtom)
-}) as any
 
-function mountAtom<A>(registry: Registry.Registry, atom: () => Atom.Atom<A>): void {
+  return makeAtomState(registry, getAtom)
+}
+
+function mountAtom<A>(registry: Registry.AtomRegistry, atom: () => Atom.Atom<A>): void {
   $effect(() => registry.mount(atom()))
 }
 
 function setAtom<R, W, Mode extends "value" | "promise" | "promiseExit" = never>(
-  registry: Registry.Registry,
+  registry: Registry.AtomRegistry,
   atom: () => Atom.Writable<R, W>,
   options?: {
-    readonly mode?: ([R] extends [Result.Result<any, any>] ? Mode : "value") | undefined
+    readonly mode?: ([R] extends [Result.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
 ): AtomSetter<R, W, Mode> {
   if (options?.mode === "promise" || options?.mode === "promiseExit") {
+    // SAFETY: The conditional setter contract permits promise modes only for AsyncResult atoms.
     return ((value: W) => {
       const current = atom()
       registry.set(current, value)
+
       const promise = Effect.runPromiseExit(
-        Registry.getResult(registry, current as Atom.Atom<Result.Result<any, any>>, { suspendOnWaiting: true })
+        // SAFETY: Promise mode requires an AsyncResult-valued atom at the public boundary.
+        Registry.getResult(registry, current as Atom.Atom<Result.AsyncResult<any, any>>, {
+          suspendOnWaiting: true
+        })
       )
+
       return options!.mode === "promise" ? promise.then(flattenExit) : promise
     }) as any
   }
+
+  // SAFETY: Without promise mode, the public setter accepts a value or an updater.
   return ((value: W | ((value: R) => W)) => {
     const current = atom()
-    registry.set(current, typeof value === "function" ? (value as any)(registry.get(current)) : value)
+    registry.set(current, Predicate.isFunction(value) ? value(registry.get(current)) : value)
   }) as any
 }
 
@@ -186,12 +226,13 @@ export const useAtomMount = <A>(atom: AtomOrGetter<Atom.Atom<A>>): void => {
 export const useAtomSet = <R, W, const Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: AtomOrGetter<Atom.Writable<R, W>>,
   options?: {
-    readonly mode?: ([R] extends [Result.Result<any, any>] ? Mode : "value") | undefined
+    readonly mode?: ([R] extends [Result.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
 ): AtomSetter<R, W, Mode> => {
   const registry = useRegistry()
   const getAtom = toGetter(atom)
   mountAtom(registry, getAtom)
+
   return setAtom(registry, getAtom, options)
 }
 
@@ -202,10 +243,11 @@ export const useAtomSet = <R, W, const Mode extends "value" | "promise" | "promi
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomRefresh = <A>(atom: AtomOrGetter<Atom.Atom<A>>): () => void => {
+export const useAtomRefresh = <A>(atom: AtomOrGetter<Atom.Atom<A>>): (() => void) => {
   const registry = useRegistry()
   const getAtom = toGetter(atom)
   mountAtom(registry, getAtom)
+
   return () => registry.refresh(getAtom())
 }
 
@@ -227,19 +269,20 @@ export const useAtomRefresh = <A>(atom: AtomOrGetter<Atom.Atom<A>>): () => void 
 export const useAtom = <R, W, const Mode extends "value" | "promise" | "promiseExit" = never>(
   atom: AtomOrGetter<Atom.Writable<R, W>>,
   options?: {
-    readonly mode?: ([R] extends [Result.Result<any, any>] ? Mode : "value") | undefined
+    readonly mode?: ([R] extends [Result.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
 ): AtomState<R, W, AtomSetter<R, W, Mode>> => {
   const registry = useRegistry()
   const getAtom = toGetter(atom)
   const state = makeAtomState(registry, getAtom)
   const set = setAtom(registry, getAtom, options)
+
   return {
-    get current() {
+    get current(): R {
       return state.current
     },
-    set current(value: R) {
-      registry.set(getAtom(), value as unknown as W)
+    set current(value: W) {
+      registry.set(getAtom(), value)
     },
     set
   }
@@ -278,7 +321,7 @@ export const useAtomSubscribe = <A>(
  * @category hooks
  */
 export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = false>(
-  atom: AtomOrGetter<Atom.Atom<Result.Result<A, E>>>,
+  atom: AtomOrGetter<Atom.Atom<Result.AsyncResult<A, E>>>,
   options?: {
     readonly suspendOnWaiting?: boolean | undefined
     readonly includeFailure?: IncludeFailure | undefined
@@ -293,17 +336,22 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
 
   let pending:
     | {
-      readonly promise: Promise<any>
-      readonly resolve: (value: any) => void
-      readonly reject: (error: unknown) => void
-    }
+        readonly promise: Promise<any>
+        readonly resolve: (value: any) => void
+        readonly reject: (cause: unknown) => void
+      }
     | undefined
-  let settled: { readonly result: Result.Result<A, E>; readonly promise: Promise<any> } | undefined
 
-  const settle = (result: Result.Result<A, E>): Promise<any> => {
+  let settled:
+    | { readonly result: Result.AsyncResult<A, E>; readonly promise: Promise<any> }
+    | undefined
+
+  const settle = (result: Result.AsyncResult<A, E>): Promise<any> => {
     let promise: Promise<any>
-    if (result._tag === "Failure" && !options?.includeFailure) {
+
+    if (Result.isFailure(result) && !options?.includeFailure) {
       const error = Cause.squash(result.cause)
+
       if (pending !== undefined) {
         promise = pending.promise
         pending.reject(error)
@@ -321,29 +369,38 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
     } else {
       promise = Promise.resolve(result)
     }
+
     settled = { result, promise }
+
     return promise
   }
 
   return {
     get current() {
       const result = state.current
-      if (result._tag === "Initial" || (suspendOnWaiting && result.waiting)) {
+
+      if (Result.isInitial(result) || (suspendOnWaiting && result.waiting)) {
         settled = undefined
+
         if (pending === undefined) {
           let resolve!: (value: any) => void
-          let reject!: (error: unknown) => void
+          let reject!: (cause: unknown) => void
+
           const promise = new Promise<any>((res, rej) => {
             resolve = res
             reject = rej
           })
+
           pending = { promise, resolve, reject }
         }
+
         return pending.promise
       }
+
       if (settled !== undefined && settled.result === result) {
         return settled.promise
       }
+
       return settle(result)
     }
   }
@@ -355,18 +412,22 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A> | (() => AtomRef.ReadonlyRef<A>)): ReadonlyAtomState<A> => {
-  const getRef = typeof ref === "function" ? ref : () => ref
+export const useAtomRef = <A>(
+  ref: AtomRef.ReadonlyRef<A> | (() => AtomRef.ReadonlyRef<A>)
+): ReadonlyAtomState<A> => {
+  const getRef = Predicate.isFunction(ref) ? ref : () => ref
   let version = $state(0)
   $effect(() =>
     getRef().subscribe(() => {
       version += 1
     })
   )
+
   return {
     get current() {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      // oxlint-disable-next-line no-unused-expressions -- bare read subscribes to the ref
       version
+
       return getRef().value
     }
   }
@@ -376,8 +437,10 @@ export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A> | (() => AtomRef.Reado
  * @since 1.0.0
  * @category hooks
  */
-export const useAtomRefProp = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, prop: K): AtomRef.AtomRef<A[K]> =>
-  ref.prop(prop)
+export const useAtomRefProp = <A, K extends keyof A>(
+  ref: AtomRef.AtomRef<A>,
+  prop: K
+): AtomRef.AtomRef<A[K]> => ref.prop(prop)
 
 /**
  * @since 1.0.0

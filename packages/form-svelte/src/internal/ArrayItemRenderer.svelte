@@ -2,6 +2,7 @@
   import { useAtomSet } from "atom-svelte"
   import * as Option from "effect/Option"
   import { getContext, setContext, type Snippet } from "svelte"
+
   import { arrayItemContextKey, type ArrayItemContext } from "./context.js"
   import type { ArrayFieldRendererConfig } from "./types.js"
 
@@ -19,7 +20,10 @@
   const arrayCtx = getContext<ArrayItemContext | undefined>(arrayItemContextKey)
   const setFormState = useAtomSet(() => config.stateAtom)
 
-  const parentPath = $derived(arrayCtx ? `${arrayCtx.parentPath}.${config.fieldKey}` : config.fieldKey)
+  const parentPath = $derived(
+    arrayCtx ? `${arrayCtx.parentPath}.${config.fieldKey}` : config.fieldKey
+  )
+
   const itemPath = $derived(`${parentPath}[${props.index}]`)
 
   setContext<ArrayItemContext>(arrayItemContextKey, {

@@ -1,9 +1,8 @@
 /**
  * @since 1.0.0
  */
-import type * as Atom from "@effect-atom/atom/Atom"
-import * as Registry from "@effect-atom/atom/Registry"
-import { globalValue } from "effect/GlobalValue"
+import type * as Atom from "effect/reactivity/Atom"
+import * as Registry from "effect/reactivity/AtomRegistry"
 import { getContext, setContext } from "svelte"
 
 /**
@@ -22,10 +21,7 @@ export const registryKey: unique symbol = Symbol.for("atom-svelte/registryKey")
  * @since 1.0.0
  * @category context
  */
-export const defaultRegistry: Registry.Registry = globalValue(
-  "atom-svelte/defaultRegistry",
-  () => Registry.make({ defaultIdleTTL: 400 })
-)
+export const defaultRegistry: Registry.AtomRegistry = Registry.make({ defaultIdleTTL: 400 })
 
 /**
  * Retrieve the `Registry` from the Svelte context, falling back to the
@@ -34,7 +30,8 @@ export const defaultRegistry: Registry.Registry = globalValue(
  * @since 1.0.0
  * @category context
  */
-export const useRegistry = (): Registry.Registry => getContext<Registry.Registry>(registryKey) ?? defaultRegistry
+export const useRegistry = (): Registry.AtomRegistry =>
+  getContext<Registry.AtomRegistry>(registryKey) ?? defaultRegistry
 
 /**
  * Provide a `Registry` to all child components via the Svelte context. Must
@@ -46,7 +43,8 @@ export const useRegistry = (): Registry.Registry => getContext<Registry.Registry
  * @since 1.0.0
  * @category context
  */
-export const provideRegistry = (registry: Registry.Registry): Registry.Registry => setContext(registryKey, registry)
+export const provideRegistry = (registry: Registry.AtomRegistry): Registry.AtomRegistry =>
+  setContext(registryKey, registry)
 
 /**
  * Options for creating a `Registry`, mirroring `Registry.make`.
@@ -56,7 +54,7 @@ export const provideRegistry = (registry: Registry.Registry): Registry.Registry 
  */
 export interface RegistryOptions {
   readonly initialValues?: Iterable<readonly [Atom.Atom<any>, any]> | undefined
-  readonly scheduleTask?: ((f: () => void) => void) | undefined
+  readonly scheduleTask?: ((f: () => void) => () => void) | undefined
   readonly timeoutResolution?: number | undefined
   readonly defaultIdleTTL?: number | undefined
 }

@@ -1,6 +1,11 @@
 <script lang="ts">
   import ValidationModeCard from "$lib/components/ValidationModeCard.svelte"
-  import { debouncedForm, onBlurForm, onChangeForm, onSubmitForm } from "$lib/forms/validation-modes"
+  import {
+    debouncedForm,
+    onBlurForm,
+    onChangeForm,
+    onSubmitForm
+  } from "$lib/forms/validation-modes"
 </script>
 
 <div class="pageContainerMedium">
