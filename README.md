@@ -14,6 +14,7 @@ core packages as dependencies and re-implement only the binding layer with Svelt
 
 ```sh
 bun install
+bun run analyze          # Fallow: unused code, dependencies, duplication, and complexity
 bun run lint             # Oxlint, including generic and Effect anti-slop rules
 bun run format:check     # Oxfmt, including Svelte components
 bun run build            # builds both packages with svelte-package (atom-svelte first)
@@ -23,6 +24,14 @@ bun run build:examples   # builds + prerenders both example apps (exercises SSR)
 ```
 
 ## Code quality
+
+`bun run analyze` runs Fallow across both packages and the example apps.
+Use `bun run analyze dead-code`, `bun run analyze health`, or `bun run analyze dupes` for individual analyses.
+The `.fallowrc.json` configuration includes source entry points and excludes generated output, reference clones, and vendored rules.
+Public package exports remain entry points even when no local example uses them.
+The dependency exception for `@oxlint/plugins` covers imports inside the excluded vendored rules.
+Review findings and analysis warnings before removing code. These commands do not apply automatic fixes.
+If Fallow reports missing `.svelte-kit/tsconfig.json` files, run `bun run build:examples` to generate the example configuration.
 
 `bun run lint:fix` applies safe lint fixes. `bun run format` formats project files.
 Run lint fixes before formatting, then run `bun run lint` and `bun run format:check`.
