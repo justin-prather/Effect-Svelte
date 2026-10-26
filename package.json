@@ -7,6 +7,7 @@
   ],
   "type": "module",
   "scripts": {
+    "analyze": "fallow",
     "build": "bun run --cwd packages/atom-svelte build && bun run --cwd packages/form-svelte build",
     "build:examples": "bun run build && bun run --cwd examples/atom-demo build && bun run --cwd examples/form-demo build",
     "check": "bun run build && bun run --cwd packages/atom-svelte check && bun run --cwd packages/form-svelte check",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@oxlint/plugins": "1.88.0",
+    "fallow": "3.33.1",
     "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
     "typescript": "^5.9.3"

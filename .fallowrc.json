@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["packages/*/src/index.ts", "packages/*/svelte.config.js"],
+  "workspaces": {
+    "patterns": ["packages/*", "examples/*"]
+  },
+  "ignorePatterns": [
+    "references/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.svelte-kit/**",
+    "tools/oxlint/anti-slop/**"
+  ],
+  "ignoreDependencies": ["@oxlint/plugins"]
+}

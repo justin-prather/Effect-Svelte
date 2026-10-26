@@ -18,6 +18,7 @@ bun run test             # build, then vitest (jsdom) in both packages
 bun run build:examples   # build packages, then build + prerender both SvelteKit examples
 bun run test:examples    # adversarial SSR check: build both examples outside the repo with an incompatible parent cookie
 bun run lint             # Oxlint, including the vendored anti-slop rules
+bun run analyze          # Fallow: unused code, dependencies, duplication, and complexity
 bun run format:check     # Oxfmt, including Svelte components
 ```
 

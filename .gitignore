@@ -5,3 +5,4 @@ references/
 .DS_Store
 .svelte-kit/
 build/
+.fallow/
